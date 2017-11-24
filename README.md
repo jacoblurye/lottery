@@ -1,0 +1,1 @@
+Exploring alternatives to the current lottery mechanism for enrollment in over-subscribed courses at Harvard.
