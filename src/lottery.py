@@ -3,6 +3,8 @@
 
 from random import randint
 
+from numpy.random import choice
+
 from course import Course
 from student import Student
 
@@ -10,37 +12,15 @@ class Lottery(object):
     """
         Assigns students to courses.
     """
-    def __init__(self, n_courses, n_students, min_cap=12, max_cap=50):
+    def __init__(self, courses, students):
         """
             Create a new lottery.
-
-            params
-            ------
-            n_courses: int
-                The number of courses in the lottery.
-            min_cap  : int, default 12
-                The lowest allowed enrollment cap.
-            max_cap  : int, default 50
-                The highest allowed enrollment cap.
         """
-        self.n_courses = n_courses
-        self.n_students = n_students
-        self.min_cap = min_cap
-        self.max_cap = max_cap
+        self.courses = courses
+        self.students = students
 
-        self.courses = []
-        self._init_courses()
-
-        self.students = []
-        self._init_students()
-
-    def _init_courses(self):
-        make_new_course = lambda: Course(randint(self.min_cap, self.max_cap))
-        self.courses = [make_new_course() for _ in xrange(self.n_courses)]
-
-    def _init_students(self):
-        make_new_student = lambda: Student(randint(1, 4), self.n_courses)
-        self.students = [make_new_student() for _ in xrange(self.n_students)]
+        self.n_courses = len(courses)
+        self.n_students = len(students)
 
     def run(self):
         """
@@ -51,23 +31,59 @@ class Lottery(object):
 
 class EfficientLottery(Lottery):
     """
-        An impossible mechanism that allocates according to student's true preferences.
+        An deterministic, unrealistic mechanism that allocates according to student's true preferences.
         Used as a point of comparison to possible course assignment mechanisms.
     """
-    
-    def run(self):
-        pass
 
+    def run(self):
+        """
+            Return an optimal allocation of students to courses.
+        """
+
+        # Courses offer spots to students with highest true values
+        for i in xrange(self.n_courses):
+            get_student_pref = lambda s: s.preferences[i]
+            sorted_students = sorted(self.students, key=get_student_pref, reverse=True)
+            for student in sorted_students:
+                self.courses[i].enroll(student)
+
+        n_enrolled = 0 
+        for student in self.students:
+            n_enrolled += len(student.get_studycard())
+
+        print n_enrolled
+        
+        # Return total utility to students
+        return sum([student.get_studycard_value() for student in self.students])
 
 
 class RandomLottery(Lottery):
     """
-        Simplified model of current Harvard lottery system.
-        Students apply to 
+        A simplified model of current Harvard lottery system.
     """
 
     def run(self):
-        pass
+        """
+            Return a random allocation of students to courses, weighted by year.
+        """
+        # Courses offer spots to students through weighted random lottery
+        for i in xrange(self.n_courses):
+            interested_students = [s for s in self.students if s.preferences[i] > 0]
+            years = [s.year for s in interested_students]
+            norm = float(sum(years))
+            weights = [y / norm for y in years]
+            chosen_students = choice(interested_students, self.courses[i].cap, replace=False, p=weights)
+            for student in chosen_students:
+                self.courses[i].enroll(student)
+
+        n_enrolled = 0
+        for student in self.students:
+            n_enrolled += len(student.get_studycard())
+
+        print n_enrolled
+
+        # Return total utility to students
+        return sum([student.get_studycard_value() for student in self.students])
 
 
 class SignallingLottery(Lottery):
