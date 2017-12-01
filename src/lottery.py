@@ -5,6 +5,7 @@ from random import randint
 
 from numpy.random import choice
 
+from ttc import TTC
 from course import Course
 from student import Student
 
@@ -47,14 +48,8 @@ class EfficientLottery(Lottery):
             for student in sorted_students:
                 self.courses[i].enroll(student)
 
-        n_enrolled = 0 
-        for student in self.students:
-            n_enrolled += len(student.get_studycard())
-
-        print n_enrolled
-        
-        # Return total utility to students
-        return sum([student.get_studycard_value() for student in self.students])
+        # Return utility to students
+        return self.students
 
 
 class RandomLottery(Lottery):
@@ -76,15 +71,50 @@ class RandomLottery(Lottery):
             for student in chosen_students:
                 self.courses[i].enroll(student)
 
-        n_enrolled = 0
-        for student in self.students:
-            n_enrolled += len(student.get_studycard())
+        # Return utility to students
+        return self.students
 
-        print n_enrolled
 
-        # Return total utility to students
-        return sum([student.get_studycard_value() for student in self.students])
+class TTCLottery(RandomLottery):
+    """
+        Random lottery + TTC.
+    """
+
+    def run(self):
+        """
+            Run the Harvard lottery, then trade results with TTC.
+        """
+        super(TTCLottery).run(self)
+
+        ttc = TTC(self.students)
+        ttc.run()
+
+        return self.students
 
 
 class SignallingLottery(Lottery):
-    pass
+    """
+        A mechanism wherein students can signal interest to their top 2 favorite courses.
+    """
+
+    def run(self):
+        """
+            Return an interest-informed allocation of students to courses.
+        """
+        # Courses offer spots to oldest interested students first
+        for course in xrange(self.n_courses):
+            # Students who might enter the lottery
+            interested_students = [s for s in self.students if s.preferences[course] > 0]
+
+            # Sort students by interest then by year
+            interested_students = sorted(
+                interested_students,
+                key=lambda s: (s.get_token(course), s.year), 
+                reverse=True
+            )
+
+            for student in interested_students[:self.courses[course].cap]:
+                self.courses[course].enroll(student)
+
+        return self.students
+

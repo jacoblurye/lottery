@@ -1,11 +1,14 @@
-from lottery import RandomLottery, EfficientLottery
+from lottery import RandomLottery, EfficientLottery, SignallingLottery
 from factory import Factory
 
 if __name__ == '__main__':
-    f = Factory(10,100,12,12)
-    courses, students = f.generate(321)
+    f = Factory(20,100,12,12)
+    courses, students = f.generate(123)
     rl = RandomLottery(courses, students)
-    print rl.run()
-    courses, students = f.generate(321)
+    rl_stud = rl.run()
+    courses, students = f.generate(123)
     el = EfficientLottery(courses, students)
-    print el.run()
+    el_stud = el.run()
+    courses, students = f.generate(123)
+    sl = SignallingLottery(courses, students)
+    sl_stud = sl.run()

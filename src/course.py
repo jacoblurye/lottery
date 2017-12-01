@@ -1,18 +1,23 @@
 """Implements the course class.
 """
 
+from random import random
+
 class Course(object):
     """
         A course with a capacity and desirability.
     """
 
-    def __init__(self, number, cap, des=.5):
+    def __init__(self, number, cap):
         """
             Create a new course with given capacity and desirability.
         """
         self.number = number
         self.cap = cap
-        self.des = des
+
+        
+        # Initialize course quality (0 to 5)
+        self.quality = random() * 5
 
         self.n_enrolled = 0
         self.enrolled = []
@@ -29,3 +34,13 @@ class Course(object):
         self.enrolled.append(student)
         student.offer_spot(self.number)
         return True
+
+    def unenroll(self, student):
+        """
+            Remove a student from the course if they choose not to enroll.
+        """
+        try:
+            self.enrolled.remove(student)
+            self.n_enrolled -= 1
+        except ValueError:
+            pass
