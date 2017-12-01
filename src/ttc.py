@@ -39,12 +39,59 @@ class TTC:
             # If the student has no tradable courses, they exit the market
             if not tradable_courses:
                 continue
-            
+
 
         return graph
     
     @staticmethod
     def _find_cycle(graph):
+        """
+            Using Tarjan's algorithm for finding Strongly Connected Components,
+            find and return all trading cycles of student slots.
+            With reference to: https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+        """
+
+        ######### Helper
+        def strongconnect(node, index, indexes, lowlinks, S, graph):
+            indexes[node] = index
+            lowlinks[node] = index
+            index += 1
+            S.append(node)
+
+            children = graph[node]
+            for child in children:
+                if child not in indexes:
+                    strongconnect(child, index, indexes, lowlinks, S, graph)
+                    lowlinks[node] = min(lowlinks[node], lowlinks[child])
+                elif child in S:
+                    lowlinks[node] = min(lowlinks[node], indexes[child])
+
+            if lowlinks[node] == indexes[node]:
+                SCC = [node]
+                nxt = S.pop()
+                while nxt != node:
+                    SCC.append(nxt)
+                    nxt = S.pop()
+                return SCC
+        ######### End Helper
+
+        # Bookkeeping
+        S = []
+        index = 0
+        indexes = {}
+        lowlinks = {}
+
+        SCCs = []
+        for student in graph.iterkeys():
+            if student not in indexes:
+                SCC = strongconnect(student, index, indexes, lowlinks, S, graph)
+                SCCs.append(SCC)
+
+        return SCCs
+
+
+    @staticmethod
+    def _find_cycle_old(graph):
         """
             Using Floyd's cycle detection algorithm, find and return a trading cycle of student slots.
             With reference to: https://en.wikipedia.org/wiki/Cycle_detection#Computer_representation
