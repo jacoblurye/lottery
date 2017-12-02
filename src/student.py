@@ -13,7 +13,7 @@ class Student(object):
         A student with course preferences.
     """
 
-    def __init__(self, year, courses, noise=1):
+    def __init__(self, year, courses, noise=const.NOISE):
         """
             params
             ------
@@ -33,6 +33,7 @@ class Student(object):
 
         self.interested = set()
         self.preferences = []
+        self.preference_dict = {}
         self._init_preferences()
 
         self.offered_courses = set()
@@ -59,22 +60,24 @@ class Student(object):
                     self.preferences.append((course, value))
 
         # Sort courses by highest preference
-        self.preferences.sort(key=lambda c: c[1], reverse=True)
+        self.preferences.sort(key=lambda c: c[1])
 
-        self.top_2 = set(self.preferences[:2])
+        self.preference_dict = defaultdict(int, dict(self.preferences))
+        self.top_2 = set(self.preferences[-2:])
 
     def get_tradable_courses(self):
         """
             Get all course slots the student is willing to trade.
             If this returns an empty list, the student exits the market.
         """
+
         # Enroll in any offered courses that are top-preferred
         while (self.preferences
-               and len(self.enrolled_courses) < const.MAX_COURSES
-               and self.preferences[-1] in self.offered_courses):
-            self.enrolled_courses.add(self.preferences[-1])
-            self.offered_courses.remove(self.preferences[-1])
-            self.pop_top_preference()
+               and self.has_room()
+               and self.preferences[-1][0] in self.offered_courses):
+            self.enrolled_courses.add(self.preferences[-1][0])
+            self.offered_courses.remove(self.preferences[-1][0])
+            self.preferences.pop()
 
         # Return any remaining courses
         return self.offered_courses
@@ -88,13 +91,7 @@ class Student(object):
         if not self.preferences:
             return None
 
-        return self.preferences[-1]
-
-    def pop_top_preference(self):
-        """
-            Remove student's top preference course.
-        """
-        self.preferences.pop()
+        return self.preferences[-1][0]
 
     def offer_spot(self, course):
         """
@@ -106,7 +103,9 @@ class Student(object):
         """
             View MAX_COURSES most valuable offered courses.
         """
-        accepts = list(self.offered_courses)[0:const.MAX_COURSES]
+        all_courses = list(self.offered_courses.union(self.enrolled_courses))
+        all_courses.sort(key=lambda c: self.preference_dict[c], reverse=True)
+        accepts = list(all_courses)[0:const.MAX_COURSES]
         return accepts
 
     def get_studycard_destructive(self):
@@ -118,12 +117,22 @@ class Student(object):
 
         rejects = [c for c in self.offered_courses if c not in accepts]
 
+        # Add accepted courses to accepts
+        for course in accepts:
+            self.enroll(course)
+
         # Remove self from course lists (freeing up spots)
         for course in rejects:
             self.remove_spot(course)
             course.unenroll(self)
 
         return accepts
+
+    def enroll(self, course):
+        """
+            Officially enroll in a course
+        """
+        self.enrolled_courses.add(course)
 
     def remove_spot(self, course):
         """
@@ -136,7 +145,7 @@ class Student(object):
             Return total utility of study card to student.
         """
         studycard = self.get_studycard()
-        return sum([self.preferences[c] for c in studycard])
+        return sum([self.preference_dict[c] for c in studycard])
 
     def get_token(self, course):
         """

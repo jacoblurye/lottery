@@ -1,6 +1,8 @@
 """Implements a variant of the Top Trading-Cycles algorithm.
 """
 
+from tqdm import tqdm
+
 from collections import defaultdict
 
 class TTC:
@@ -9,6 +11,12 @@ class TTC:
     """
 
     def __init__(self, students):
+
+        # clear student enrollments
+        for student in students:
+            student.offered_courses.update(student.enrolled_courses)
+            student.enrolled_courses.clear()
+
         self.students = students
 
     def run(self):
@@ -16,17 +24,26 @@ class TTC:
             Do TTC.
         """
         # Initialize top preference graph
+        print "Building graph"
         graph = self._build_graph()
 
         while graph:
             
-            # Find a cycle
-            cycle = TTC._find_cycle(graph)
+            # Find cycles
+            print "Finding cycles"
+            cycles = TTC._find_cycles(graph)
 
-            # Trade along the cycle
-            TTC._trade_on_cycle(cycle)
+            # If there are no cycles, end TTC
+            if not cycles:
+                break
+
+            # Trade along the cycles
+            print "Trading along cycles"
+            for cycle in cycles:
+                TTC._trade_on_cycle(cycle)
 
             # Build graph again
+            print "Rebuilding graph"
             graph = self._build_graph()
 
 
@@ -41,22 +58,24 @@ class TTC:
         student_course_list = []
         for student in self.students:
             tradable_courses = student.get_tradable_courses()
+
             # If the student has no tradable courses, they exit the market
             if not tradable_courses:
                 continue
+
             for course in tradable_courses:
                 student_course_list.append((student, course))
         
-        # Point student-course pairs at pairs with courses they are interest in
+        # Point student-course pairs at pairs with their top (achievable) preference course
         for student_course in student_course_list:
-            top_pref = student_course.top_preference()
-            children = [s_c for s_c in student_course_list if s_c[1] == top_pref]
+            top_pref = student_course[0].top_preference()
+            children = [s_c for s_c in student_course_list if s_c[1] == top_pref and s_c[0] != student_course[0]]
             graph[(student_course)] = children
 
         return graph
     
     @staticmethod
-    def _find_cycle(graph):
+    def _find_cycles(graph):
         """
             Using Tarjan's algorithm for finding Strongly Connected Components,
             find and return all trading cycles of student slots.
@@ -74,10 +93,14 @@ class TTC:
                 scc = TTC._strongconnect(student, index, indexes, lowlinks, stack, graph)
                 sccs.append(scc)
 
+        print "Found ", len(sccs), " SCCs!"
+
         # Convert SCCs to cycles
         cycles = []
         for scc in sccs:
+            print "Finding longest cycle"
             cycle = TTC._scc_to_cycle(graph, scc)
+            print "Done."
             cycles.append(cycle)
         
         # Return cycles of length > 1 (since those self-loops are automatically resolved)
@@ -141,11 +164,13 @@ class TTC:
         # Collect all paths from root to dest
         paths = []
         root = scc[0]
-        for dest in scc[1:]:
+        for dest in tqdm(scc[1:]):
             paths += get_all_paths(root, dest, [])
         
         # Return the longest path
-        return max(paths, key=len)
+        if paths:
+            return max(paths, key=len)
+        return []
 
     
     @staticmethod
@@ -156,9 +181,13 @@ class TTC:
         l = len(cycle)
         # Trade course spots "backwards" along the cycle
         for i in xrange(l):
-            recipient, _ = cycle[i]
+            recipient, old_spot = cycle[i]
             trader, new_spot = cycle[(i + 1) % l]
+
+            print (recipient, old_spot.subject + " " + str(old_spot.number)), " for ", (trader, new_spot.subject + " " + str(new_spot.number))
 
             # Make the trade
             recipient.offer_spot(new_spot)
             trader.remove_spot(new_spot)
+
+            recipient.get_studycard_destructive()

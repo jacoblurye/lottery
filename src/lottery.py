@@ -66,8 +66,6 @@ class RandomLottery(Lottery):
         courses_with_room = set([c for c in self.courses if c.has_room()])
         students_with_room = [s for s in self.students if s.has_room() and s.interested & courses_with_room]
 
-        i = 0
-
         # Run the lottery loop repeatedly until we've assigned as many people as we can
         while courses_with_room and students_with_room:
             
@@ -82,11 +80,10 @@ class RandomLottery(Lottery):
                 norm = float(sum(years))
                 weights = [y / norm for y in years]
                 
-                # Make sure we need a lottery
-                assert(len(interested_students) > course.spots())
+                cap = min(len(interested_students), course.spots())
 
                 # Offer spots to randomly chosen students in the course
-                chosen_students = choice(interested_students, course.spots(), replace=False, p=weights)
+                chosen_students = choice(interested_students, cap, replace=False, p=weights)
                 for student in chosen_students:
                     course.enroll(student)
 
