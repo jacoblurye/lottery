@@ -34,14 +34,11 @@ class Factory(object):
         """
         if seed_int:
             seed(seed_int)
-        courses = self._init_courses()
-        students = self._init_students()
-        return courses, students
 
-    def _init_courses(self):
         make_new_course = lambda n: Course(n, randint(self.min_cap, self.max_cap))
-        return [make_new_course(i) for i in xrange(self.n_courses)]
+        courses = [make_new_course(i) for i in xrange(self.n_courses)]
+        
+        make_new_student = lambda: Student(randint(1, 4), courses)
+        students = [make_new_student() for _ in xrange(self.n_students)]
 
-    def _init_students(self):
-        make_new_student = lambda: Student(randint(1, 4), self.n_courses)
-        return [make_new_student() for _ in xrange(self.n_students)]
+        return courses, students

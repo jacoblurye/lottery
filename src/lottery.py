@@ -5,6 +5,7 @@ from random import randint
 
 from numpy.random import choice
 
+import constants as const
 from ttc import TTC
 from course import Course
 from student import Student
@@ -61,17 +62,42 @@ class RandomLottery(Lottery):
         """
             Return a random allocation of students to courses, weighted by year.
         """
-        # Courses offer spots to students through weighted random lottery
-        for i in xrange(self.n_courses):
-            interested_students = [s for s in self.students if s.preferences[i] > 0]
-            years = [s.year for s in interested_students]
-            norm = float(sum(years))
-            weights = [y / norm for y in years]
-            chosen_students = choice(interested_students, self.courses[i].cap, replace=False, p=weights)
-            for student in chosen_students:
-                self.courses[i].enroll(student)
 
-        # Return utility to students
+        courses_with_room = set([c for c in self.courses if c.has_room()])
+        students_with_room = [s for s in self.students if s.has_room() and s.interested & courses_with_room]
+
+        i = 0
+
+        # Run the lottery loop repeatedly until we've assigned as many people as we can
+        while courses_with_room and students_with_room:
+            
+            # Courses offer spots to students through weighted random lottery
+            for course in courses_with_room:
+
+                # Collect all students who are interested in the course's subject
+                interested_students = [s for s in students_with_room if course in s.interested]
+                
+                # Construct the weights on students
+                years = [s.year for s in interested_students]
+                norm = float(sum(years))
+                weights = [y / norm for y in years]
+                
+                # Make sure we need a lottery
+                assert(len(interested_students) > course.spots())
+
+                # Offer spots to randomly chosen students in the course
+                chosen_students = choice(interested_students, course.spots(), replace=False, p=weights)
+                for student in chosen_students:
+                    course.enroll(student)
+
+                # Students make acceptances and rejections
+                for student in students_with_room:
+                    student.get_studycard_destructive()
+
+                courses_with_room = set([c for c in self.courses if c.has_room()])
+                students_with_room = [s for s in self.students if s.has_room() and s.interested & courses_with_room]
+
+        # Return students
         return self.students
 
 

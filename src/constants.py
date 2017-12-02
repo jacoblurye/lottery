@@ -25,6 +25,12 @@ SUBJECTS = [
     "Psychology"
 ]
 
+# Number of students
+N_STUDENTS = 1000
+
+# Number of courses
+N_COURSES = 50
+
 # Max and min number of subjects students are interested in
 MIN_SUBJECTS = 1
 MAX_SUBJECTS = 5

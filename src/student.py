@@ -31,6 +31,7 @@ class Student(object):
             sample(const.SUBJECTS, randint(const.MIN_SUBJECTS, const.MAX_SUBJECTS))
         )
 
+        self.interested = set()
         self.preferences = []
         self._init_preferences()
 
@@ -54,6 +55,7 @@ class Student(object):
                 value = course.quality + normal(scale=self.noise)
                 # Only lottery for courses with positive value
                 if value >= 0:
+                    self.interested.add(course)
                     self.preferences.append((course, value))
 
         # Sort courses by highest preference
@@ -100,18 +102,34 @@ class Student(object):
         """
         self.offered_courses.add(course)
 
+    def get_studycard(self):
+        """
+            View MAX_COURSES most valuable offered courses.
+        """
+        accepts = list(self.offered_courses)[0:const.MAX_COURSES]
+        return accepts
+
+    def get_studycard_destructive(self):
+        """
+            Enroll in up to MAX_COURSES most valuable courses, 
+            and permanently remove self from the other course lists.
+        """
+        accepts = self.get_studycard()
+
+        rejects = [c for c in self.offered_courses if c not in accepts]
+
+        # Remove self from course lists (freeing up spots)
+        for course in rejects:
+            self.remove_spot(course)
+            course.unenroll(self)
+
+        return accepts
+
     def remove_spot(self, course):
         """
             Remove a Course spot offer.
         """
         self.offered_courses.remove(course)
-
-    def get_studycard(self):
-        """
-            Enroll in up to 4 most valuable offered courses.
-        """
-        accepts = self.preferences[0:const.MAX_COURSES]
-        return accepts
 
     def get_studycard_value(self):
         """
@@ -125,3 +143,9 @@ class Student(object):
             Return true if the course is one of the student's top 2.
         """
         return course in self.top_2
+
+    def has_room(self):
+        """
+            Return true if student has room in their studycard.
+        """
+        return len(self.enrolled_courses) < const.MAX_COURSES

@@ -1,7 +1,9 @@
 """Implements the course class.
 """
 
-from random import random
+from random import random, choice
+
+import constants as const
 
 class Course(object):
     """
@@ -15,7 +17,9 @@ class Course(object):
         self.number = number
         self.cap = cap
 
-        
+        # Initialize course subject
+        self.subject = choice(const.SUBJECTS)
+
         # Initialize course quality (0 to 5)
         self.quality = random() * 5
 
@@ -28,11 +32,11 @@ class Course(object):
         """
         # If the cap is reached, or the student isn't interested
         # don't enroll the student
-        if self.n_enrolled >= self.cap or not student.preferences[self.number]:
+        if self.n_enrolled >= self.cap:
             return False
         self.n_enrolled += 1
         self.enrolled.append(student)
-        student.offer_spot(self.number)
+        student.offer_spot(self)
         return True
 
     def unenroll(self, student):
@@ -44,3 +48,15 @@ class Course(object):
             self.n_enrolled -= 1
         except ValueError:
             pass
+
+    def spots(self):
+        """
+            Return # of free spots remaining in the course.
+        """
+        return self.cap - self.n_enrolled
+
+    def has_room(self):
+        """
+            Return True if course hasn't reached its enrollment cap.
+        """
+        return self.n_enrolled < self.cap
