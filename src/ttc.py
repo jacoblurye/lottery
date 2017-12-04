@@ -132,53 +132,6 @@ class TTC:
         
         # Return cycles of length > 1 (since those self-loops are automatically resolved)
         return [c for c in cycles if len(c) > 1]
-    
-    @staticmethod
-    def _scc_to_cycle(graph, scc):
-        """
-            Given a strongly connected component, return the longest cycle over that component.
-        """
-        scc_set = set(scc)
-        get_children = lambda node: [c for c in graph[node] if c in scc_set]
-        is_cycle = lambda path: path[0] in get_children(path[-1])
-
-
-        ###### BEGIN HELPER
-        # With reference to: https://stackoverflow.com/questions/29320556/finding-longest-path-in-a-graph
-        def dfs(root, seen=[], path=None):
-            if path is None:
-                path = [root]
-            
-            seen.append(root)
-
-            paths = []
-            # print graph
-            children = get_children(root)
-            for child in children:
-                if child not in seen:
-                    new_path = path + [child]
-                    paths.append(new_path)
-                    paths.extend(dfs(child, seen[:], new_path))
-            cycles = [p for p in paths if is_cycle(p)]
-            print len(cycles)
-            return cycles
-
-        ###### END HELPER
-
-        # Collect all paths from root to dest
-        print "Finding all paths"
-        cycles = dfs(graph.items()[0][0])
-        print "Done"
-
-        # Return the longest path
-        if cycles:
-            # Randomly choose between longest cycles
-            # cycles = [p for p in paths if is_cycle(p)]
-            max_len = max([len(c) for c in cycles])
-            max_cycles = [c for c in cycles if len(c) == max_len]
-            return choice(max_cycles)
-        
-        return []
 
     @staticmethod
     def _scc_to_cycle_johnson(graph, scc):
