@@ -1,7 +1,7 @@
 """Defines constants for use throughout.
 """
 
-N_SUBJECTS = 10
+N_SUBJECTS = 21
 
 # Possible course subjects
 SUBJECTS = [
@@ -34,8 +34,8 @@ N_STUDENTS = 1000
 N_COURSES = 50
 
 # Max and min number of subjects students are interested in
-MIN_SUBJECTS = 5
-MAX_SUBJECTS = min(5, N_SUBJECTS)
+MIN_SUBJECTS = min(1, N_SUBJECTS)
+MAX_SUBJECTS = min(3, N_SUBJECTS)
 
 # Max number of courses students can enroll in (min is 0)
 MAX_COURSES = 4

@@ -74,6 +74,9 @@ class RandomLottery(Lottery):
 
                 # Collect all students who are interested in the course's subject
                 interested_students = [s for s in students_with_room if course in s.interested]
+
+                if not interested_students:
+                    continue
                 
                 # Construct the weights on students
                 years = [s.year for s in interested_students]
@@ -107,7 +110,7 @@ class TTCLottery(RandomLottery):
         """
             Run the Harvard lottery, then trade results with TTC.
         """
-        super(TTCLottery).run(self)
+        self.students = super(TTCLottery, self).run()
 
         ttc = TTC(self.students)
         ttc.run()

@@ -43,11 +43,9 @@ class Course(object):
         """
             Remove a student from the course if they choose not to enroll.
         """
-        try:
+        if student in self.enrolled:
             self.enrolled.remove(student)
             self.n_enrolled -= 1
-        except ValueError:
-            pass
 
     def spots(self):
         """
@@ -60,3 +58,6 @@ class Course(object):
             Return True if course hasn't reached its enrollment cap.
         """
         return self.n_enrolled < self.cap
+
+    def __repr__(self):
+        return str(self.number)

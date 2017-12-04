@@ -38,7 +38,6 @@ class Student(object):
 
         self.offered_courses = set()
         self.enrolled_courses = set()
-        self.top_2 = set()
 
     def _init_preferences(self):
         """
@@ -61,16 +60,20 @@ class Student(object):
 
         # Sort courses by highest preference
         self.preferences.sort(key=lambda c: c[1])
-
         self.preference_dict = defaultdict(int, dict(self.preferences))
-        self.top_2 = set(self.preferences[-2:])
 
-    def get_tradable_courses(self):
+    def init_trading(self):
         """
-            Get all course slots the student is willing to trade.
-            If this returns an empty list, the student exits the market.
+            Move all courses into offered_courses to prepare for trading.
         """
+        self.offered_courses.update(self.enrolled_courses)
+        self.enrolled_courses.clear()
 
+
+    def _update_preferences(self):
+        """
+            Enroll in all courses that shouldn't be traded away.
+        """
         # Enroll in any offered courses that are top-preferred
         while (self.preferences
                and self.has_room()
@@ -79,19 +82,13 @@ class Student(object):
             self.offered_courses.remove(self.preferences[-1][0])
             self.preferences.pop()
 
-        # Return any remaining courses
-        return self.offered_courses
-
     def top_preference(self):
         """
             Get student's top preferred course that they haven't been offered. 
             (For use by TTC)
         """
-        # Preferences exhausted -- student will exit the market
-        if not self.preferences:
-            return None
-
-        return self.preferences[-1][0]
+        if self.preferences:
+            return self.preferences[-1][0]
 
     def offer_spot(self, course):
         """
@@ -105,7 +102,7 @@ class Student(object):
         """
         all_courses = list(self.offered_courses.union(self.enrolled_courses))
         all_courses.sort(key=lambda c: self.preference_dict[c], reverse=True)
-        accepts = list(all_courses)[0:const.MAX_COURSES]
+        accepts = all_courses[0:const.MAX_COURSES]
         return accepts
 
     def get_studycard_destructive(self):
@@ -123,8 +120,11 @@ class Student(object):
 
         # Remove self from course lists (freeing up spots)
         for course in rejects:
-            self.remove_spot(course)
             course.unenroll(self)
+        self.offered_courses.difference_update(rejects)
+
+        # Sanity check
+        self.offered_courses.difference_update(self.enrolled_courses)
 
         return accepts
 
@@ -132,13 +132,16 @@ class Student(object):
         """
             Officially enroll in a course
         """
-        self.enrolled_courses.add(course)
+        if self.has_room():
+            self.enrolled_courses.add(course)
 
     def remove_spot(self, course):
         """
             Remove a Course spot offer.
         """
-        self.offered_courses.remove(course)
+        if course in self.offered_courses:
+            #print "Removed course"
+            self.offered_courses.remove(course)
 
     def get_studycard_value(self):
         """
@@ -147,14 +150,11 @@ class Student(object):
         studycard = self.get_studycard()
         return sum([self.preference_dict[c] for c in studycard])
 
-    def get_token(self, course):
-        """
-            Return true if the course is one of the student's top 2.
-        """
-        return course in self.top_2
-
     def has_room(self):
         """
             Return true if student has room in their studycard.
         """
         return len(self.enrolled_courses) < const.MAX_COURSES
+
+    def __repr__(self):
+        return str(self.year)
