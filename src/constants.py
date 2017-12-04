@@ -1,7 +1,7 @@
 """Defines constants for use throughout.
 """
 
-N_SUBJECTS = 21
+N_SUBJECTS = 100
 
 # Possible course subjects
 SUBJECTS = [

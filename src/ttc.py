@@ -93,6 +93,17 @@ class TTC:
                     graph[k] = v
                 nodes.remove(student)
 
+        # Sanity
+        for student in nodes:
+            try:
+                sanitized_children = [
+                    c for c in graph[student]
+                    if c in graph
+                ]
+                graph[student] = sanitized_children
+            except KeyError:
+                student.get_studycard_destructive()
+
         # print graph
         return graph
 
@@ -127,11 +138,51 @@ class TTC:
         # Convert SCCs to cycles
         cycles = []
         for scc in sccs:
-            cycle = TTC._scc_to_cycle_johnson(graph, scc)
+            if len(scc) > 1:
+                cycle = TTC._scc_to_cycle_johnson(graph, scc)
+            else:
+                cycle = scc
             cycles.append(cycle)
         
         # Return cycles of length > 1 (since those self-loops are automatically resolved)
-        return [c for c in cycles if len(c) > 1]
+        out_cycles = []
+        for cycle in cycles:
+            if len(cycle) > 1:
+                out_cycles.append(cycle)
+            else:
+                cycle[0].get_studycard_destructive()
+        return out_cycles
+
+    @staticmethod
+    def _strongconnect(node, index, indexes, lowlinks, stack, graph):
+        """
+            Tarjan's helper function.
+            With reference to: https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+        """
+        indexes[node] = index
+        lowlinks[node] = index
+        index += 1
+        stack.append(node)
+
+        if node not in graph:
+            return
+
+        children = graph[node]
+        for child in children:
+            if child not in indexes:
+                TTC._strongconnect(child, index, indexes, lowlinks, stack, graph)
+                lowlinks[node] = min(lowlinks[node], lowlinks[child])
+            elif child in stack:
+                lowlinks[node] = min(lowlinks[node], indexes[child])
+
+        # If we're at an SCC root, build the SCC
+        if lowlinks[node] == indexes[node]:
+            SCC = [node]
+            nxt = stack.pop()
+            while nxt != node:
+                SCC.append(nxt)
+                nxt = stack.pop()
+            return SCC
 
     @staticmethod
     def _scc_to_cycle_johnson(graph, scc):
@@ -179,7 +230,10 @@ class TTC:
         while scc:
             subgraph = {}
             for node in scc:
-                subgraph[node] = [c for c in graph[node] if c in scc]
+                try:
+                    subgraph[node] = [c for c in graph[node] if c in scc]
+                except KeyError:
+                    pass
 
             root = scc.pop()
             
@@ -214,5 +268,3 @@ class TTC:
             # Make the trade
             recipient.offer_spot(slot)
             trader.remove_spot(slot)
-
-            #print old_sc, recipient.get_studycard_destructive(), recipient.get_studycard_value()

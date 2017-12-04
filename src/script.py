@@ -75,21 +75,26 @@ def example():
 
 
 if __name__ == '__main__':
-    # example()
+    #example()
 
-    f = Factory(20, 200, 12, 12)
-    courses, students = f.generate(123)
-    rl = RandomLottery(courses, students)
-    rl_stud = rl.run()
-    rl_utils = [s.get_studycard_value() for s in rl.students]
+    diffs = []
+    for i in xrange(1):
+        f = Factory(50, 500, 12, 12)
+        courses, students = f.generate(123)
+        rl = RandomLottery(courses, students)
+        rl_stud = rl.run()
+        rl_utils = [s.get_studycard_value() for s in rl.students]
 
-    ttc = TTC(deepcopy(rl_stud))
-    ttc.run()
-    ttc_utils= [s.get_studycard_value() for s in ttc.students]
+        ttc = TTC(rl_stud)
+        ttc.run()
+        ttc_utils= [s.get_studycard_value() for s in ttc.students]
+        diffs.append(sum(ttc_utils) - sum(rl_utils))
+    
+    print sum(diffs)
 
-    print "Welfare under random lottery: ", sum(rl_utils)
-    print "Welfare under random lottery + TTC: ", sum(ttc_utils)
-    print sum([len(s.get_studycard()) for s in rl.students])
-    print sum([len(set(s.get_studycard())) for s in ttc.students])
-    print max([t - r for t, r in zip(ttc_utils, rl_utils)])
-    print sum([t - r for t, r in zip([len(set(s.get_studycard())) for s in ttc.students], [len(s.get_studycard()) for s in rl.students])]) / float(len(rl.students))
+    # print "Welfare under random lottery: ", sum(rl_utils)
+    # print "Welfare under random lottery + TTC: ", sum(ttc_utils)
+    # print sum([len(s.get_studycard()) for s in rl.students])
+    # print sum([len(set(s.get_studycard())) for s in ttc.students])
+    # print max([t - r for t, r in zip(ttc_utils, rl_utils)])
+    # print sum([t - r for t, r in zip([len(set(s.get_studycard())) for s in ttc.students], [len(s.get_studycard()) for s in rl.students])]) / float(len(rl.students))
