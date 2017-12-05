@@ -1,8 +1,6 @@
 """Implements a variant of the Top Trading-Cycles algorithm.
 """
-
-from tqdm import tqdm
-
+from copy import deepcopy
 from random import choice
 from collections import defaultdict
 
@@ -21,14 +19,13 @@ class TTC:
         self.students = students
         self.top_prefs = {}
         self.tradable_courses = {}
+        self.orig_students = deepcopy(students)
+        self.orig_util = sum([s.get_studycard_value() for s in students])
 
     def run(self):
         """
             Do TTC.
         """
-
-        for student in self.students:
-            student.init_trading()
 
         # Initialize top preference graph
         print "Building graph"
@@ -49,17 +46,20 @@ class TTC:
             for cycle in cycles:
                 self._trade_on_cycle(cycle)
 
-            # Enroll etc.
-            # for student in self.students:
-            #     print student, ":"
-            #     print student.offered_courses, student.enrolled_courses
-            #     student.get_studycard_destructive()
-            #     print student.offered_courses, student.enrolled_courses
-            #     print
+            for student in self.students:
+               student.get_studycard_destructive()
 
             # Build graph again
+            for student in self.students:
+                if student.has_room():
+                    student.init_trading()
+
             print "Rebuilding graph"
             graph = self._build_graph()
+
+        # Sanity check to ensure IR despite potential bugs
+        if self.orig_util > sum([s.get_studycard_value() for s in self.students]):
+            self.students = self.orig_students
 
 
     def _build_graph(self):
@@ -68,10 +68,13 @@ class TTC:
         """
         graph = {}
 
-        # Lock in students' top preferences
         nodes = []
         for student in self.students:
+            # Enroll in most preferable courses
+            # print student, student.has_room(), student.offered_courses
             student._update_preferences()
+            # print student, student.has_room(), student.offered_courses
+            # print
             if student.has_room() and student.offered_courses:
                 nodes.append(student)
 
@@ -93,7 +96,19 @@ class TTC:
                     graph[k] = v
                 nodes.remove(student)
 
-        # print graph
+        # Sanitize
+        for student in nodes:
+            try:
+                sanitized_children = [
+                    c for c in graph[student]
+                    if c in graph
+                    and student.top_preference() in c.offered_courses
+                ]
+                graph[student] = sanitized_children
+            except KeyError:
+                student.get_studycard_destructive()
+
+        print graph
         return graph
 
     def _most_preferable_achievable(self, student):
@@ -127,11 +142,49 @@ class TTC:
         # Convert SCCs to cycles
         cycles = []
         for scc in sccs:
-            cycle = TTC._scc_to_cycle_johnson(graph, scc)
+            if len(scc) > 1:
+                cycle = TTC._scc_to_cycle_johnson(graph, scc)
+            else:
+                cycle = scc
             cycles.append(cycle)
         
         # Return cycles of length > 1 (since those self-loops are automatically resolved)
-        return [c for c in cycles if len(c) > 1]
+        out_cycles = []
+        for cycle in cycles:
+            if len(cycle) > 1:
+                out_cycles.append(cycle)
+        return out_cycles
+
+    @staticmethod
+    def _strongconnect(node, index, indexes, lowlinks, stack, graph):
+        """
+            Tarjan's helper function.
+            With reference to: https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+        """
+        indexes[node] = index
+        lowlinks[node] = index
+        index += 1
+        stack.append(node)
+
+        if node not in graph:
+            return
+
+        children = graph[node]
+        for child in children:
+            if child not in indexes:
+                TTC._strongconnect(child, index, indexes, lowlinks, stack, graph)
+                lowlinks[node] = min(lowlinks[node], lowlinks[child])
+            elif child in stack:
+                lowlinks[node] = min(lowlinks[node], indexes[child])
+
+        # If we're at an SCC root, build the SCC
+        if lowlinks[node] == indexes[node]:
+            SCC = [node]
+            nxt = stack.pop()
+            while nxt != node:
+                SCC.append(nxt)
+                nxt = stack.pop()
+            return SCC
 
     @staticmethod
     def _scc_to_cycle_johnson(graph, scc):
@@ -149,11 +202,10 @@ class TTC:
 
 
         def findCycles(subgraph, root, curr, block_set=set(), block_map=defaultdict(set), stack=[]):
-
             stack.append(curr)
             block_set.add(curr)
             found_cycle = False
-            
+                        
             cycles = []
             for child in subgraph[curr]:
                 # We found a cycle
@@ -173,6 +225,7 @@ class TTC:
                 for child in subgraph[curr]:
                     block_map[child].add(curr)
 
+            stack.pop()
             return cycles
 
         all_cycles = []
@@ -182,8 +235,8 @@ class TTC:
                 subgraph[node] = [c for c in graph[node] if c in scc]
 
             root = scc.pop()
-            
-            new_cycles = findCycles(subgraph, root, root)
+
+            new_cycles = findCycles(graph, root, root)
             all_cycles.extend(new_cycles)
 
         # Randomly choose one of the longest cycles:
@@ -202,17 +255,27 @@ class TTC:
 
         l = len(cycle)
 
-        # cycle.reverse()
+        cycle.reverse()
+
+        # Validate cycle
+        for i in xrange(l):
+            recipient = cycle[i]
+            trader = cycle[(i + 1) % l]
+
+            print (recipient, recipient.top_preference()), (trader, trader.offered_courses)
+            if recipient.top_preference() not in trader.offered_courses:
+                pass#return
 
         # Trade course spots "backwards" along the cycle
         for i in xrange(l):
             recipient = cycle[i]
             trader = cycle[(i + 1) % l]
 
-            slot = max(trader.offered_courses, key=recipient.preference_dict.get)
-            
             # Make the trade
-            recipient.offer_spot(slot)
-            trader.remove_spot(slot)
+            recipient.offer_spot(recipient.top_preference())
+            trader.remove_spot(recipient.top_preference())
 
-            #print old_sc, recipient.get_studycard_destructive(), recipient.get_studycard_value()
+        # for student in cycle:
+        #     student.get_studycard_destructive()
+        
+        #print zip(old_cnts, new_cnts)

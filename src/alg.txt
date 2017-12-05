@@ -1,0 +1,2 @@
+1. Students enroll in all courses that they like.
+2. Students enroll in all courses that are preferable to other students' offered courses.

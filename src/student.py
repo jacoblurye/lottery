@@ -121,7 +121,6 @@ class Student(object):
         # Remove self from course lists (freeing up spots)
         for course in rejects:
             course.unenroll(self)
-        self.offered_courses.difference_update(rejects)
 
         # Sanity check
         self.offered_courses.difference_update(self.enrolled_courses)
@@ -140,8 +139,9 @@ class Student(object):
             Remove a Course spot offer.
         """
         if course in self.offered_courses:
-            #print "Removed course"
             self.offered_courses.remove(course)
+        else:
+            print "Didn't remove course"
 
     def get_studycard_value(self):
         """
@@ -157,4 +157,4 @@ class Student(object):
         return len(self.enrolled_courses) < const.MAX_COURSES
 
     def __repr__(self):
-        return str(self.year)
+         return str(self.year)#__hash__())
