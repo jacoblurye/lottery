@@ -121,7 +121,6 @@ class Student(object):
         # Remove self from course lists (freeing up spots)
         for course in rejects:
             course.unenroll(self)
-        #self.offered_courses.difference_update(rejects)
 
         # Sanity check
         self.offered_courses.difference_update(self.enrolled_courses)
@@ -157,5 +156,5 @@ class Student(object):
         """
         return len(self.enrolled_courses) < const.MAX_COURSES
 
-    # def __repr__(self):
-    #     return str(self.year)
+    def __repr__(self):
+         return str(self.__hash__())

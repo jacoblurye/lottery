@@ -1,7 +1,7 @@
 """Defines constants for use throughout.
 """
 
-N_SUBJECTS = 100
+N_SUBJECTS = 5
 
 # Possible course subjects
 SUBJECTS = [
@@ -41,4 +41,4 @@ MAX_SUBJECTS = min(3, N_SUBJECTS)
 MAX_COURSES = 4
 
 # How much noise to include in student preferences (stdev of a normal distribution)
-NOISE = 5
+NOISE = 1

@@ -18,7 +18,7 @@ def example():
     students = [Student(i, courses) for i in xrange(6)]
 
     # Set up preferences
-    def pref_sort(p): return sorted(p, key=lambda t: t[1])
+    def pref_sort(p): return sorted(p, key=lambda t: t[1], reverse=False)
     students[0].preference_dict = defaultdict(int, {
         courses[0]: 4,
         courses[3]: 3,
@@ -63,35 +63,54 @@ def example():
     students[4].offered_courses.update([courses[0]])
     students[5].offered_courses.update([courses[3]])
 
-    orig_utils = sum([s.get_studycard_value() for s in students])
+    orig_utils = [s.get_studycard_value() for s in students]
+    orig_scs = [s.get_studycard() for s in students]
 
     ttc = TTC(students)
     ttc.run()
     ttc_utils = [s.get_studycard_value() for s in ttc.students]
 
-    print orig_utils
+    print orig_scs
+    print [s.get_studycard() for s in ttc.students]
+
+    print sum(orig_utils)
     print sum(ttc_utils)
     print sum([len(set(s.get_studycard())) for s in ttc.students])
 
-
-if __name__ == '__main__':
-    #example()
-
+def random_vs_ttc():
     diffs = []
-    for i in xrange(1):
-        f = Factory(50, 500, 12, 12)
+    for i in xrange(100):
+        f = Factory(4, 100, 12, 12)
         courses, students = f.generate(123)
         rl = RandomLottery(courses, students)
         rl_stud = rl.run()
         rl_utils = [s.get_studycard_value() for s in rl.students]
+        rl_count = sum([len(s.get_studycard()) for s in rl.students])
 
-        ttc = TTC(rl_stud)
+        # for student in rl_stud:
+        #     print student, ":", student.enrolled_courses
+
+        # courses, students = f.generate(123)
+        ttc = TTC(deepcopy(rl_stud))
         ttc.run()
-        ttc_utils= [s.get_studycard_value() for s in ttc.students]
-        diffs.append(sum(ttc_utils) - sum(rl_utils))
-    
-    print sum(diffs)
 
+        ttc_utils = [s.get_studycard_value() for s in ttc.students]
+        diff = sum(ttc_utils) - sum(rl_utils)
+        diffs.append(diff)
+
+        print rl_count
+        print sum([len(set(s.get_studycard())) for s in ttc.students])
+
+        print sum(ttc_utils) - sum(rl_utils)
+
+    print sum(diffs)
+    return ttc.students, diffs
+
+
+if __name__ == '__main__':
+    studs, diffs = random_vs_ttc()
+    #example()
+   
     # print "Welfare under random lottery: ", sum(rl_utils)
     # print "Welfare under random lottery + TTC: ", sum(ttc_utils)
     # print sum([len(s.get_studycard()) for s in rl.students])
