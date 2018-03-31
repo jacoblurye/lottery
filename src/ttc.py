@@ -26,7 +26,6 @@ class TTC:
         """
             Do TTC.
         """
-
         # Initialize top preference graph
         print "Building graph"
         graph = self._build_graph()
@@ -57,7 +56,6 @@ class TTC:
             print "Rebuilding graph"
             graph = self._build_graph()
 
-        # Sanity check to ensure IR despite potential bugs
         if self.orig_util > sum([s.get_studycard_value() for s in self.students]):
             self.students = self.orig_students
 
@@ -71,16 +69,14 @@ class TTC:
         nodes = []
         for student in self.students:
             # Enroll in most preferable courses
-            # print student, student.has_room(), student.offered_courses
             student._update_preferences()
-            # print student, student.has_room(), student.offered_courses
-            # print
+            # If student has courses to trade and room in their studycard,
+            # they enter this TTC round
             if student.has_room() and student.offered_courses:
                 nodes.append(student)
 
         # Point students at other students who have their top choice course
         for student in nodes:
-            # print student, " has top pref ", student.top_preference()
             children = [
                 s for s in nodes
                 if student.top_preference() in s.offered_courses
@@ -91,12 +87,11 @@ class TTC:
             else:
                 for k, v in graph.iteritems():
                     if student in v:
-                        # print "A"
                         v.remove(student)
                     graph[k] = v
                 nodes.remove(student)
 
-        # Sanitize
+        # Make sure there are no students pointing at students who were removed above
         for student in nodes:
             try:
                 sanitized_children = [
@@ -108,7 +103,6 @@ class TTC:
             except KeyError:
                 student.get_studycard_destructive()
 
-        print graph
         return graph
 
     def _most_preferable_achievable(self, student):
@@ -258,18 +252,10 @@ class TTC:
 
         l = len(cycle)
 
+        # To conduct trades, we step backwards through the cycle
         cycle.reverse()
 
-        # Validate cycle
-        for i in xrange(l):
-            recipient = cycle[i]
-            trader = cycle[(i + 1) % l]
-
-            print (recipient, recipient.top_preference()), (trader, trader.offered_courses)
-            if recipient.top_preference() not in trader.offered_courses:
-                pass#return
-
-        # Trade course spots "backwards" along the cycle
+        # Trade course spots along the cycle
         for i in xrange(l):
             recipient = cycle[i]
             trader = cycle[(i + 1) % l]
@@ -277,8 +263,3 @@ class TTC:
             # Make the trade
             recipient.offer_spot(recipient.top_preference())
             trader.remove_spot(recipient.top_preference())
-
-        # for student in cycle:
-        #     student.get_studycard_destructive()
-        
-        #print zip(old_cnts, new_cnts)

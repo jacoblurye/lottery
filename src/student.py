@@ -140,8 +140,6 @@ class Student(object):
         """
         if course in self.offered_courses:
             self.offered_courses.remove(course)
-        else:
-            print "Didn't remove course"
 
     def get_studycard_value(self):
         """
